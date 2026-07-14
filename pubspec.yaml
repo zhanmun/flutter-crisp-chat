@@ -1,0 +1,69 @@
+name: crisp_chat
+description: Flutter plugin for Crisp live chat on Android, iOS, Web, and desktop.
+version: 2.6.0
+
+readme: README.md
+license: MIT
+
+homepage: https://alamin-karno.github.io/flutter-crisp-chat/
+issue_tracker: https://github.com/alamin-karno/flutter-crisp-chat/issues
+repository: https://github.com/alamin-karno/flutter-crisp-chat
+documentation: https://pub.dev/documentation/crisp_chat/latest/
+
+
+
+environment:
+  sdk: '>=3.5.0 <4.0.0'
+  flutter: ">=3.24.0"
+
+dependencies:
+  desktop_webview_window: ^0.3.0
+  flutter:
+    sdk: flutter
+  flutter_web_plugins:
+    sdk: flutter
+  http: ^1.6.0
+  plugin_platform_interface: ^2.1.8
+  url_launcher: ^6.3.2
+  web: ^1.1.1
+
+dev_dependencies:
+  flutter_test:
+    sdk: flutter
+  flutter_lints: ">=2.0.0 <7.0.0"
+
+flutter:
+  plugin:
+    platforms:
+      android:
+        package: com.alaminkarno.flutter_crisp_chat
+        pluginClass: FlutterCrispChatPlugin
+      ios:
+        pluginClass: FlutterCrispChatPlugin
+      web:
+        pluginClass: CrispChatWeb
+        fileName: crisp_chat_web.dart
+      macos:
+        dartPluginClass: CrispChatDesktopPlugin
+        fileName: crisp_chat_desktop.dart
+      windows:
+        dartPluginClass: CrispChatDesktopPlugin
+        fileName: crisp_chat_desktop.dart
+      linux:
+        dartPluginClass: CrispChatDesktopPlugin
+        fileName: crisp_chat_desktop.dart
+
+topics:
+  - crisp
+  - crisp-chat
+  - chat
+  - communication
+
+funding:
+  - https://buymeacoffee.com/alaminkarno
+  - https://www.patreon.com/alamin_karno
+
+false_secrets:
+  - /example/lib/firebase_options.dart
+  - /example/android/app/google-services.json
+
