@@ -249,7 +249,10 @@ public class FlutterCrispChatPlugin: NSObject, FlutterPlugin, UIApplicationDeleg
     /// Shared by `openCrispChat` and `configureCrispSession` so a session can be
     /// registered (and push notifications enabled) either with or without the
     /// chat window being shown.
+    private static let lastWebsiteIDDefaultsKey = "CrispChatLastWebsiteID"
+
     private func applyCrispConfig(_ crispConfig: CrispConfig, websiteID: String) {
+        UserDefaults.standard.set(websiteID, forKey: Self.lastWebsiteIDDefaultsKey)
         CrispSDK.configure(websiteID: websiteID)
         CrispSDK.setShouldPromptForNotificationPermission(crispConfig.enableNotifications)
 
@@ -359,6 +362,18 @@ public class FlutterCrispChatPlugin: NSObject, FlutterPlugin, UIApplicationDeleg
             print("[CrispPlugin] Crisp notification tapped - opening chat")
             #endif
             CrispSDK.handlePushNotification(notification)
+
+            // If the app was killed and relaunched by this tap, Dart's
+            // configureCrispSession()/openCrispChat() may not have run yet in
+            // this process, leaving CrispSDK unconfigured. Fall back to the
+            // last-known website ID persisted in applyCrispConfig(_:websiteID:)
+            // so openChat() below doesn't present a chat view with no website
+            // ID configured. This never touches tokenId/user/session data, so
+            // it can't resurrect a previous user's conversation.
+            if let lastWebsiteID = UserDefaults.standard.string(forKey: Self.lastWebsiteIDDefaultsKey),
+               !lastWebsiteID.isEmpty {
+                CrispSDK.configure(websiteID: lastWebsiteID)
+            }
 
             DispatchQueue.main.async { [weak self] in
                 self?.openChat()
