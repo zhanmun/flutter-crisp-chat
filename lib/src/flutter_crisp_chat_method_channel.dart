@@ -44,6 +44,15 @@ class MethodChannelFlutterCrispChat extends FlutterCrispChatPlatform {
         'openCrispChat', config.toJson());
   }
 
+  /// [configureCrispSession] is used to invoke the Method Channel and call
+  /// native code to configure the Crisp SDK session without opening the
+  /// chat UI.
+  @override
+  Future<void> configureCrispSession({required CrispConfig config}) async {
+    await methodChannel.invokeMethod<CrispConfig>(
+        'configureCrispSession', config.toJson());
+  }
+
   /// [resetCrispChatSession] is use to invoke the Method Channel and call native
   /// code with no arguments and this will reset the crisp chat session.
   @override

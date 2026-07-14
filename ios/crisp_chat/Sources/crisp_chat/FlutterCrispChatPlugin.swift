@@ -75,27 +75,7 @@ public class FlutterCrispChatPlugin: NSObject, FlutterPlugin, UIApplicationDeleg
                 return
             }
 
-            CrispSDK.configure(websiteID: websiteID)
-            CrispSDK.setShouldPromptForNotificationPermission(crispConfig.enableNotifications)
-
-            if let tokenId = crispConfig.tokenId {
-                CrispSDK.setTokenID(tokenID: tokenId)
-            }
-            if let segment = crispConfig.sessionSegment {
-                CrispSDK.session.segment = segment
-            }
-
-            CrispSDK.user.email = crispConfig.user?.email
-            CrispSDK.user.signature = crispConfig.user?.signature
-            CrispSDK.user.nickname = crispConfig.user?.nickName
-            CrispSDK.user.phone = crispConfig.user?.phone
-            if let avatarURLString = crispConfig.user?.avatar, let avatarURL = URL(string: avatarURLString) {
-                CrispSDK.user.avatar = avatarURL
-            } else {
-                CrispSDK.user.avatar = nil
-            }
-
-            CrispSDK.user.company = crispConfig.user?.company?.toCrispCompany()
+            applyCrispConfig(crispConfig, websiteID: websiteID)
 
             if openChat(modalPresentationStyle: crispConfig.modalPresentationStyle) {
                 result(nil)
@@ -108,6 +88,37 @@ public class FlutterCrispChatPlugin: NSObject, FlutterPlugin, UIApplicationDeleg
                     )
                 )
             }
+
+        case "configureCrispSession":
+            guard let args = call.arguments as? [String: Any] else {
+                result(FlutterError(code: "INVALID_ARGUMENTS", message: "No arguments passed.", details: nil))
+                return
+            }
+
+            guard let crispConfig = CrispConfig.fromJson(args) else {
+                result(
+                    FlutterError(
+                        code: "INVALID_ARGUMENTS",
+                        message: "Crisp website ID not found.",
+                        details: nil
+                    )
+                )
+                return
+            }
+            let websiteID = crispConfig.websiteID.trimmingCharacters(in: .whitespacesAndNewlines)
+            guard !websiteID.isEmpty else {
+                result(
+                    FlutterError(
+                        code: "INVALID_ARGUMENTS",
+                        message: "Crisp website ID not found.",
+                        details: nil
+                    )
+                )
+                return
+            }
+
+            applyCrispConfig(crispConfig, websiteID: websiteID)
+            result(nil)
 
         case "resetCrispChatSession":
             CrispSDK.session.reset()
@@ -230,6 +241,36 @@ public class FlutterCrispChatPlugin: NSObject, FlutterPlugin, UIApplicationDeleg
         default:
             result(FlutterMethodNotImplemented)
         }
+    }
+
+    /// Configures the Crisp SDK (website ID, push notification prompt, token ID,
+    /// session segment, and user fields) without presenting any UI.
+    ///
+    /// Shared by `openCrispChat` and `configureCrispSession` so a session can be
+    /// registered (and push notifications enabled) either with or without the
+    /// chat window being shown.
+    private func applyCrispConfig(_ crispConfig: CrispConfig, websiteID: String) {
+        CrispSDK.configure(websiteID: websiteID)
+        CrispSDK.setShouldPromptForNotificationPermission(crispConfig.enableNotifications)
+
+        if let tokenId = crispConfig.tokenId {
+            CrispSDK.setTokenID(tokenID: tokenId)
+        }
+        if let segment = crispConfig.sessionSegment {
+            CrispSDK.session.segment = segment
+        }
+
+        CrispSDK.user.email = crispConfig.user?.email
+        CrispSDK.user.signature = crispConfig.user?.signature
+        CrispSDK.user.nickname = crispConfig.user?.nickName
+        CrispSDK.user.phone = crispConfig.user?.phone
+        if let avatarURLString = crispConfig.user?.avatar, let avatarURL = URL(string: avatarURLString) {
+            CrispSDK.user.avatar = avatarURL
+        } else {
+            CrispSDK.user.avatar = nil
+        }
+
+        CrispSDK.user.company = crispConfig.user?.company?.toCrispCompany()
     }
 
     /// Opens the Crisp chat in a dedicated UIWindow.

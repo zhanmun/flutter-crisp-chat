@@ -73,6 +73,23 @@ class FlutterCrispChat {
     }
   }
 
+  /// Configures the native Crisp SDK session (website ID, token ID, session
+  /// segment, user fields, and push notification registration) **without**
+  /// presenting the chat UI.
+  ///
+  /// Use this to register the session as early as possible (e.g. right after
+  /// login) so Crisp can deliver push notifications for admin replies even
+  /// if the user never opens the chat screen. [openCrispChat] remains the
+  /// call to use when the user actually wants to view the chat.
+  ///
+  /// {@category General}
+  /// @param config The configuration object for Crisp chat.
+  static Future<void> configureCrispSession({required CrispConfig config}) {
+    return FlutterCrispChatPlatform.instance.configureCrispSession(
+      config: config,
+    );
+  }
+
   /// Resets the current Crisp chat session.
   ///
   /// This method clears any ongoing chat session data, effectively starting fresh.

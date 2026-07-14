@@ -32,6 +32,14 @@ abstract class FlutterCrispChatPlatform extends PlatformInterface {
     throw UnimplementedError('platformVersion() has not been implemented.');
   }
 
+  /// [configureCrispSession] configures the native Crisp SDK (website ID,
+  /// token ID, session segment, user fields, push notification
+  /// registration) without presenting the chat UI.
+  Future<void> configureCrispSession({required CrispConfig config}) {
+    throw UnimplementedError(
+        'configureCrispSession() has not been implemented.');
+  }
+
   /// [resetCrispChatSession] is to call native platform and if no implementation
   /// found through error.
   Future<void> resetCrispChatSession() {
