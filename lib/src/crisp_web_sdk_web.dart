@@ -107,9 +107,11 @@ class CrispWebSdk {
       _loaderCompleter = null;
     }
 
-    _setBootstrap(websiteId: websiteId, tokenId: tokenId);
-
     if (!_scriptInjected) {
+      // Only (re)bootstrap when we're actually (re)loading l.js - resetting
+      // window.$crisp while the SDK is already live would wipe it out with
+      // nothing left to repopulate it, permanently breaking the SDK.
+      _setBootstrap(websiteId: websiteId, tokenId: tokenId);
       await _injectLoaderScript();
       _scriptInjected = true;
     }
@@ -130,9 +132,11 @@ class CrispWebSdk {
     final websiteId = config.websiteID.trim();
     final needsQueue = !_scriptInjected || _loadedWebsiteId != websiteId;
 
-    _setBootstrap(websiteId: websiteId, tokenId: config.tokenId);
-
     if (needsQueue) {
+      // Only (re)bootstrap when we're actually (re)loading l.js - resetting
+      // window.$crisp here while the SDK is already live would wipe it out
+      // with nothing left to repopulate it, permanently breaking the SDK.
+      _setBootstrap(websiteId: websiteId, tokenId: config.tokenId);
       // Queue pushes before l.js so Crisp processes them when the SDK boots.
       _globalEval(CrispJsBridge.queueBeforeLoad(config).toJS);
       if (!_scriptInjected) {
@@ -156,9 +160,8 @@ class CrispWebSdk {
     final websiteId = config.websiteID.trim();
     final needsQueue = !_scriptInjected || _loadedWebsiteId != websiteId;
 
-    _setBootstrap(websiteId: websiteId, tokenId: config.tokenId);
-
     if (needsQueue) {
+      _setBootstrap(websiteId: websiteId, tokenId: config.tokenId);
       _globalEval(CrispJsBridge.queueConfigOnlyBeforeLoad(config).toJS);
       if (!_scriptInjected) {
         await _injectLoaderScript();
