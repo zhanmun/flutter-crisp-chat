@@ -304,6 +304,29 @@ public class FlutterCrispChatPlugin: NSObject, FlutterPlugin, UIApplicationDeleg
         return true
     }
 
+    /// Retries `openChat()` a bounded number of times (every 200ms, up to 10
+    /// attempts / ~2s) until a `.foregroundActive` scene exists.
+    ///
+    /// During a cold launch triggered by tapping a notification, the app's
+    /// scene may still be transitioning and not yet `.foregroundActive` at the
+    /// instant `didReceive` fires — `openChat()` would then silently fail with
+    /// no retry. Gives up quietly (same as today) once attempts run out.
+    private func openChatRetryingUntilSceneReady(
+        modalPresentationStyle: UIModalPresentationStyle = .fullScreen,
+        attemptsRemaining: Int = 10
+    ) {
+        if openChat(modalPresentationStyle: modalPresentationStyle) {
+            return
+        }
+        guard attemptsRemaining > 0 else { return }
+        DispatchQueue.main.asyncAfter(deadline: .now() + 0.2) { [weak self] in
+            self?.openChatRetryingUntilSceneReady(
+                modalPresentationStyle: modalPresentationStyle,
+                attemptsRemaining: attemptsRemaining - 1
+            )
+        }
+    }
+
     /// Handles registration of device token for push notifications.
     public func application(_ application: UIApplication,
                             didRegisterForRemoteNotificationsWithDeviceToken deviceToken: Data) {
@@ -376,7 +399,7 @@ public class FlutterCrispChatPlugin: NSObject, FlutterPlugin, UIApplicationDeleg
             }
 
             DispatchQueue.main.async { [weak self] in
-                self?.openChat()
+                self?.openChatRetryingUntilSceneReady()
             }
         } else {
             #if DEBUG
