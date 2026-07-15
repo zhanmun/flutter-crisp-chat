@@ -57,6 +57,22 @@ class CrispJsBridge {
     return lines.join('\n');
   }
 
+  /// Applies [config] without opening the chatbox (call after Crisp script is loaded).
+  static String applyConfigOnly(CrispConfig config) {
+    return _userAndSessionCommands(config).join('\n');
+  }
+
+  /// Queues session setup (no chat open) before `l.js` loads.
+  static String queueConfigOnlyBeforeLoad(CrispConfig config) {
+    final lines = <String>[
+      r'$crisp.push(["safe", true]);',
+      r'$crisp.push(["config", "container:index", [999999]]);',
+      r'$crisp.push(["on", "session:loaded", function(session_id) { window.__crispSessionId = session_id; }]);',
+      ..._userAndSessionCommands(config),
+    ];
+    return lines.join('\n');
+  }
+
   static List<String> _userAndSessionCommands(CrispConfig config) {
     final commands = <String>[];
     final user = config.user;

@@ -52,6 +52,13 @@ class DesktopFlutterCrispChat extends FlutterCrispChatPlatform {
     await _openInBrowser(config);
   }
 
+  /// Desktop has no headless/background session concept — every Crisp
+  /// session here opens a visible WebView window, so there's nothing
+  /// meaningful to "configure without opening." No-op to avoid callers
+  /// hitting the platform interface's default UnimplementedError.
+  @override
+  Future<void> configureCrispSession({required CrispConfig config}) async {}
+
   /// Writes embed HTML to a temp file and returns a `file://` URI string.
   Future<String> _writeEmbedPage(String html) async {
     _embedDirectory =

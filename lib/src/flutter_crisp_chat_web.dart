@@ -13,6 +13,11 @@ class WebFlutterCrispChat extends FlutterCrispChatPlatform {
   }
 
   @override
+  Future<void> configureCrispSession({required CrispConfig config}) async {
+    await CrispWebSdk.applyConfigOnly(config);
+  }
+
+  @override
   Future<void> resetCrispChatSession() async {
     await CrispWebSdk.runScript(CrispJsBridge.resetSession());
   }

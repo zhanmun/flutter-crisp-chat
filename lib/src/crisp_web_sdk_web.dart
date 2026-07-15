@@ -150,6 +150,29 @@ class CrispWebSdk {
     await _waitForSessionOngoing();
   }
 
+  /// Applies [config] (website ID, user, session data) without opening the
+  /// chatbox — used to register push/session state as early as possible.
+  static Future<void> applyConfigOnly(CrispConfig config) async {
+    final websiteId = config.websiteID.trim();
+    final needsQueue = !_scriptInjected || _loadedWebsiteId != websiteId;
+
+    _setBootstrap(websiteId: websiteId, tokenId: config.tokenId);
+
+    if (needsQueue) {
+      _globalEval(CrispJsBridge.queueConfigOnlyBeforeLoad(config).toJS);
+      if (!_scriptInjected) {
+        await _injectLoaderScript();
+        _scriptInjected = true;
+      }
+      _loadedWebsiteId = websiteId;
+      await _waitForCrispSdk();
+      return;
+    }
+
+    await _waitForCrispSdk();
+    await runScript(CrispJsBridge.applyConfigOnly(config));
+  }
+
   static Future<String?> getSessionIdentifier() async {
     if (!_isCrispSdkLoaded) {
       return null;

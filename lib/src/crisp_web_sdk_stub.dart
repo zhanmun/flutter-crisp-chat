@@ -15,5 +15,7 @@ class CrispWebSdk {
 
   static Future<void> applyConfigAndOpen(CrispConfig config) async {}
 
+  static Future<void> applyConfigOnly(CrispConfig config) async {}
+
   static Future<String?> getSessionIdentifier() async => null;
 }
