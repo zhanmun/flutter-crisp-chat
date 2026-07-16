@@ -147,7 +147,13 @@ class CrispJsBridge {
     return '\$crisp.push(${jsonEncode(["set", "user:company", payload])});';
   }
 
-  static String resetSession() => r'$crisp.push(["do", "session:reset"]);';
+  // Also hides the widget bubble/window (not just the session data) so it
+  // doesn't keep floating on screen after logout — `chat:show`/`chat:open`
+  // (pushed the next time the chat is opened) makes it visible again.
+  static String resetSession() => r'''
+$crisp.push(["do", "session:reset"]);
+$crisp.push(["do", "chat:hide"]);
+''';
 
   /// Opens the Crisp Helpdesk search UI via the web SDK.
   static String openHelpdeskSearch() =>
