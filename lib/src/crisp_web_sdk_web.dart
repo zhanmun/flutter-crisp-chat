@@ -121,6 +121,12 @@ class CrispWebSdk {
   }
 
   static Future<void> runScript(String javaScript) async {
+    // Nothing to run against if l.js was never injected - there's no session
+    // to act on, so skip the 15s wait-then-throw instead of blocking callers
+    // (e.g. resetCrispChatSession() during login) that only apply best-effort.
+    if (!_scriptInjected) {
+      return;
+    }
     await _waitForCrispSdk();
     _globalEval(javaScript.toJS);
   }
