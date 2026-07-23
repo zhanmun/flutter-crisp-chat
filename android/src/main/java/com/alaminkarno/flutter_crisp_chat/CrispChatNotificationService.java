@@ -40,8 +40,12 @@ public class CrispChatNotificationService extends FirebaseMessagingService {
     @Override
     public void onMessageReceived(@NonNull RemoteMessage message) {
         if (CrispNotificationClient.isCrispNotification(message)) {
-            // Handle Crisp notification without auto-opening ChatActivity
-            CrispNotificationClient.handleNotification(this, message, false);
+            // A Crisp push can arrive at process cold-start, before the app has run
+            // configureCrispSession()/openCrispChat() - ensure Crisp is configured first,
+            // since handleNotification() NPEs internally otherwise.
+            if (FlutterCrispChatPlugin.ensureConfigured(this)) {
+                CrispNotificationClient.handleNotification(this, message, false);
+            }
         } else {
             // Non-Crisp notification - let other handlers process it
             super.onMessageReceived(message);
@@ -52,7 +56,10 @@ public class CrispChatNotificationService extends FirebaseMessagingService {
     @Override
     public void onNewToken(@NonNull String token) {
         super.onNewToken(token);
-        // Forward the FCM token to Crisp for notification delivery
-        CrispNotificationClient.sendTokenToCrisp(this, token);
+        // Same cold-start race as onMessageReceived: sendTokenToCrisp() NPEs internally if
+        // Crisp was never configured in this process.
+        if (FlutterCrispChatPlugin.ensureConfigured(this)) {
+            CrispNotificationClient.sendTokenToCrisp(this, token);
+        }
     }
 }

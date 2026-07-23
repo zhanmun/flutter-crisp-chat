@@ -8,6 +8,7 @@ import android.util.Log;
 import androidx.annotation.NonNull;
 
 import com.alaminkarno.flutter_crisp_chat.config.CrispConfig;
+import com.google.firebase.messaging.FirebaseMessaging;
 
 import java.util.HashMap;
 import java.util.List;
@@ -34,11 +35,55 @@ import io.flutter.plugin.common.PluginRegistry;
 public class FlutterCrispChatPlugin implements FlutterPlugin, MethodCallHandler, ActivityAware, PluginRegistry.NewIntentListener {
 
     private static final String CHANNEL_NAME = "flutter_crisp_chat";
+    private static final String PREFS_NAME = "flutter_crisp_chat_prefs";
+    private static final String LAST_WEBSITE_ID_KEY = "last_website_id";
 
     private MethodChannel channel;
     private Context context;
     private Activity activity;
     private ActivityPluginBinding activityBinding;
+
+    private static void persistLastWebsiteId(Context context, String websiteId) {
+        context.getSharedPreferences(PREFS_NAME, Context.MODE_PRIVATE)
+            .edit()
+            .putString(LAST_WEBSITE_ID_KEY, websiteId)
+            .apply();
+    }
+
+    /**
+     * Ensures Crisp.configure() has been called at least once in this process, using the
+     * last website ID configured by the Flutter side. CrispChatNotificationService needs
+     * this before calling into Crisp's SDK (e.g. sendTokenToCrisp()), since those calls NPE
+     * internally if Crisp was never configured - e.g. an FCM token/message arriving at
+     * process cold-start, before the app has run configureCrispSession()/openCrispChat().
+     * Returns false if there's no known website ID yet (Crisp has never been configured on
+     * this device at all), in which case there is nothing to associate the call with.
+     */
+    /**
+     * Re-associates the device's current FCM token with Crisp's backend for the session
+     * just configured. There is no token-refresh listener in the host app, so this piggybacks
+     * on every configureCrispSession()/openCrispChat() call - i.e. every point where the
+     * session identity actually changes (login, logout, guest) - rather than requiring a
+     * second FirebaseMessagingService, which would conflict with the host app's own FCM
+     * service (Android only delivers onMessageReceived/onNewToken to one registered service).
+     */
+    private static void forwardCurrentFcmTokenToCrisp(Context context) {
+        FirebaseMessaging.getInstance().getToken().addOnCompleteListener(task -> {
+            if (task.isSuccessful() && task.getResult() != null) {
+                CrispNotificationClient.sendTokenToCrisp(context, task.getResult());
+            }
+        });
+    }
+
+    static boolean ensureConfigured(Context context) {
+        String lastWebsiteId = context.getSharedPreferences(PREFS_NAME, Context.MODE_PRIVATE)
+            .getString(LAST_WEBSITE_ID_KEY, null);
+        if (lastWebsiteId == null || lastWebsiteId.isEmpty()) {
+            return false;
+        }
+        Crisp.configure(context, lastWebsiteId);
+        return true;
+    }
 
     @Override
     public void onAttachedToEngine(@NonNull FlutterPluginBinding flutterPluginBinding) {
@@ -110,6 +155,8 @@ public class FlutterCrispChatPlugin implements FlutterPlugin, MethodCallHandler,
                 } else {
                     Crisp.configure(context, config.websiteId);
                 }
+                persistLastWebsiteId(context, config.websiteId);
+                forwardCurrentFcmTokenToCrisp(context);
 
                 Crisp.enableNotifications(context, config.enableNotifications);
                 setCrispData(context, config);
@@ -133,6 +180,8 @@ public class FlutterCrispChatPlugin implements FlutterPlugin, MethodCallHandler,
                 } else {
                     Crisp.configure(context, config.websiteId);
                 }
+                persistLastWebsiteId(context, config.websiteId);
+                forwardCurrentFcmTokenToCrisp(context);
 
                 Crisp.enableNotifications(context, config.enableNotifications);
                 setCrispData(context, config);
