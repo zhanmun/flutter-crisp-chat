@@ -250,6 +250,7 @@ public class FlutterCrispChatPlugin: NSObject, FlutterPlugin, UIApplicationDeleg
     /// registered (and push notifications enabled) either with or without the
     /// chat window being shown.
     private static let lastWebsiteIDDefaultsKey = "CrispChatLastWebsiteID"
+    private static let lastTokenIDDefaultsKey = "CrispChatLastTokenID"
 
     private func applyCrispConfig(_ crispConfig: CrispConfig, websiteID: String) {
         UserDefaults.standard.set(websiteID, forKey: Self.lastWebsiteIDDefaultsKey)
@@ -257,6 +258,7 @@ public class FlutterCrispChatPlugin: NSObject, FlutterPlugin, UIApplicationDeleg
         CrispSDK.setShouldPromptForNotificationPermission(crispConfig.enableNotifications)
 
         if let tokenId = crispConfig.tokenId {
+            UserDefaults.standard.set(tokenId, forKey: Self.lastTokenIDDefaultsKey)
             CrispSDK.setTokenID(tokenID: tokenId)
         }
         if let segment = crispConfig.sessionSegment {
@@ -328,12 +330,31 @@ public class FlutterCrispChatPlugin: NSObject, FlutterPlugin, UIApplicationDeleg
     }
 
     /// Handles registration of device token for push notifications.
+    ///
+    /// This fires on its own OS timeline, uncoordinated with when Dart calls
+    /// configureCrispSession()/openCrispChat() (applyCrispConfig above). If the
+    /// device token arrives *after* applyCrispConfig already ran - more likely
+    /// on a fresh install, where this is the first-ever APNs handshake for this
+    /// device/app pair and can take noticeably longer - CrispSDK.configure()/
+    /// setTokenID() already completed without a device token to associate,
+    /// and nothing else re-syncs the two. Re-applying the last-known
+    /// websiteID/tokenID here closes that race: whichever of the two async
+    /// events (config vs. token) lands second always completes the pairing.
     public func application(_ application: UIApplication,
                             didRegisterForRemoteNotificationsWithDeviceToken deviceToken: Data) {
         #if DEBUG
         print("[CrispPlugin] Device token registered")
         #endif
         CrispSDK.setDeviceToken(deviceToken)
+
+        if let lastWebsiteID = UserDefaults.standard.string(forKey: Self.lastWebsiteIDDefaultsKey),
+           !lastWebsiteID.isEmpty {
+            CrispSDK.configure(websiteID: lastWebsiteID)
+            if let lastTokenID = UserDefaults.standard.string(forKey: Self.lastTokenIDDefaultsKey),
+               !lastTokenID.isEmpty {
+                CrispSDK.setTokenID(tokenID: lastTokenID)
+            }
+        }
     }
 
     /// Handles incoming notifications and checks if they are Crisp notifications.
