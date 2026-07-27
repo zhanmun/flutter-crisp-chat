@@ -253,6 +253,7 @@ public class FlutterCrispChatPlugin: NSObject, FlutterPlugin, UIApplicationDeleg
     private static let lastTokenIDDefaultsKey = "CrispChatLastTokenID"
 
     private func applyCrispConfig(_ crispConfig: CrispConfig, websiteID: String) {
+        NSLog("[CrispPlugin] applyCrispConfig called: websiteID=\(websiteID), tokenId=\(crispConfig.tokenId ?? "nil")")
         UserDefaults.standard.set(websiteID, forKey: Self.lastWebsiteIDDefaultsKey)
         CrispSDK.configure(websiteID: websiteID)
         CrispSDK.setShouldPromptForNotificationPermission(crispConfig.enableNotifications)
@@ -342,18 +343,19 @@ public class FlutterCrispChatPlugin: NSObject, FlutterPlugin, UIApplicationDeleg
     /// events (config vs. token) lands second always completes the pairing.
     public func application(_ application: UIApplication,
                             didRegisterForRemoteNotificationsWithDeviceToken deviceToken: Data) {
-        #if DEBUG
-        print("[CrispPlugin] Device token registered")
-        #endif
+        NSLog("[CrispPlugin] Device token registered, length=\(deviceToken.count)")
         CrispSDK.setDeviceToken(deviceToken)
 
         if let lastWebsiteID = UserDefaults.standard.string(forKey: Self.lastWebsiteIDDefaultsKey),
            !lastWebsiteID.isEmpty {
+            let lastTokenID = UserDefaults.standard.string(forKey: Self.lastTokenIDDefaultsKey)
+            NSLog("[CrispPlugin] Re-applying last-known config after device token: websiteID=\(lastWebsiteID), tokenID=\(lastTokenID ?? "nil")")
             CrispSDK.configure(websiteID: lastWebsiteID)
-            if let lastTokenID = UserDefaults.standard.string(forKey: Self.lastTokenIDDefaultsKey),
-               !lastTokenID.isEmpty {
+            if let lastTokenID = lastTokenID, !lastTokenID.isEmpty {
                 CrispSDK.setTokenID(tokenID: lastTokenID)
             }
+        } else {
+            NSLog("[CrispPlugin] Device token arrived but no lastWebsiteID persisted yet - applyCrispConfig hasn't run in this process")
         }
     }
 
@@ -362,13 +364,9 @@ public class FlutterCrispChatPlugin: NSObject, FlutterPlugin, UIApplicationDeleg
     public func userNotificationCenter(_ center: UNUserNotificationCenter,
                                        willPresent notification: UNNotification,
                                        withCompletionHandler completionHandler: @escaping (UNNotificationPresentationOptions) -> Void) {
-        #if DEBUG
-        print("[CrispPlugin] willPresent notification called")
-        #endif
+        NSLog("[CrispPlugin] willPresent notification called, userInfo=\(notification.request.content.userInfo)")
         if CrispSDK.isCrispPushNotification(notification) {
-            #if DEBUG
-            print("[CrispPlugin] Crisp notification detected in willPresent")
-            #endif
+            NSLog("[CrispPlugin] Crisp notification detected in willPresent")
             CrispSDK.handlePushNotification(notification)
             if #available(iOS 14.0, *) {
                 completionHandler([.banner, .sound])
@@ -376,9 +374,7 @@ public class FlutterCrispChatPlugin: NSObject, FlutterPlugin, UIApplicationDeleg
                 completionHandler([.alert, .sound])
             }
         } else {
-            #if DEBUG
-            print("[CrispPlugin] Non-Crisp notification in willPresent")
-            #endif
+            NSLog("[CrispPlugin] Non-Crisp notification in willPresent")
             if let previousNotificationDelegate = previousNotificationDelegate,
                previousNotificationDelegate !== self,
                previousNotificationDelegate.responds(to: #selector(userNotificationCenter(_:willPresent:withCompletionHandler:))) {
@@ -397,14 +393,10 @@ public class FlutterCrispChatPlugin: NSObject, FlutterPlugin, UIApplicationDeleg
     public func userNotificationCenter(_ center: UNUserNotificationCenter,
                                        didReceive response: UNNotificationResponse,
                                        withCompletionHandler completionHandler: @escaping () -> Void) {
-        #if DEBUG
-        print("[CrispPlugin] didReceive notification response called")
-        #endif
+        NSLog("[CrispPlugin] didReceive notification response called")
         let notification = response.notification
         if CrispSDK.isCrispPushNotification(notification) {
-            #if DEBUG
-            print("[CrispPlugin] Crisp notification tapped - opening chat")
-            #endif
+            NSLog("[CrispPlugin] Crisp notification tapped - opening chat")
             CrispSDK.handlePushNotification(notification)
 
             // If the app was killed and relaunched by this tap, Dart's
@@ -423,9 +415,7 @@ public class FlutterCrispChatPlugin: NSObject, FlutterPlugin, UIApplicationDeleg
                 self?.openChatRetryingUntilSceneReady()
             }
         } else {
-            #if DEBUG
-            print("[CrispPlugin] Non-Crisp notification tapped")
-            #endif
+            NSLog("[CrispPlugin] Non-Crisp notification tapped")
             if let previousNotificationDelegate = previousNotificationDelegate,
                previousNotificationDelegate !== self,
                previousNotificationDelegate.responds(to: #selector(userNotificationCenter(_:didReceive:withCompletionHandler:))) {
