@@ -344,12 +344,11 @@ public class FlutterCrispChatPlugin: NSObject, FlutterPlugin, UIApplicationDeleg
     public func application(_ application: UIApplication,
                             didRegisterForRemoteNotificationsWithDeviceToken deviceToken: Data) {
         NSLog("[CrispPlugin] Device token registered, length=\(deviceToken.count)")
-        CrispSDK.setDeviceToken(deviceToken)
 
         if let lastWebsiteID = UserDefaults.standard.string(forKey: Self.lastWebsiteIDDefaultsKey),
            !lastWebsiteID.isEmpty {
             let lastTokenID = UserDefaults.standard.string(forKey: Self.lastTokenIDDefaultsKey)
-            NSLog("[CrispPlugin] Re-applying last-known config after device token: websiteID=\(lastWebsiteID), tokenID=\(lastTokenID ?? "nil")")
+            NSLog("[CrispPlugin] Re-applying last-known config before device token: websiteID=\(lastWebsiteID), tokenID=\(lastTokenID ?? "nil")")
             CrispSDK.configure(websiteID: lastWebsiteID)
             if let lastTokenID = lastTokenID, !lastTokenID.isEmpty {
                 CrispSDK.setTokenID(tokenID: lastTokenID)
@@ -357,6 +356,8 @@ public class FlutterCrispChatPlugin: NSObject, FlutterPlugin, UIApplicationDeleg
         } else {
             NSLog("[CrispPlugin] Device token arrived but no lastWebsiteID persisted yet - applyCrispConfig hasn't run in this process")
         }
+
+        CrispSDK.setDeviceToken(deviceToken)
     }
 
     /// Handles incoming notifications and checks if they are Crisp notifications.
