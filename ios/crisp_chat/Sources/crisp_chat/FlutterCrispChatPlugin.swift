@@ -251,6 +251,7 @@ public class FlutterCrispChatPlugin: NSObject, FlutterPlugin, UIApplicationDeleg
     /// chat window being shown.
     private static let lastWebsiteIDDefaultsKey = "CrispChatLastWebsiteID"
     private static let lastTokenIDDefaultsKey = "CrispChatLastTokenID"
+    private static let lastDeviceTokenDefaultsKey = "CrispChatLastDeviceToken"
 
     private func applyCrispConfig(_ crispConfig: CrispConfig, websiteID: String) {
         NSLog("[CrispPlugin] applyCrispConfig called: websiteID=\(websiteID), tokenId=\(crispConfig.tokenId ?? "nil")")
@@ -261,6 +262,17 @@ public class FlutterCrispChatPlugin: NSObject, FlutterPlugin, UIApplicationDeleg
         if let tokenId = crispConfig.tokenId {
             UserDefaults.standard.set(tokenId, forKey: Self.lastTokenIDDefaultsKey)
             CrispSDK.setTokenID(tokenID: tokenId)
+        }
+
+        // configure()/setTokenID() above can (re)create the Crisp session -
+        // e.g. resetCrispChatSession() on login wipes it - and the device
+        // token is only ever handed to the SDK from the one-shot OS callback
+        // below, which doesn't fire again just because the session reset.
+        // Re-apply whatever token we already have on file so a session reset
+        // doesn't leave the new session with no token bound to it at all.
+        if let lastDeviceTokenData = UserDefaults.standard.data(forKey: Self.lastDeviceTokenDefaultsKey) {
+            NSLog("[CrispPlugin] Re-applying persisted device token after (re)configure, length=\(lastDeviceTokenData.count)")
+            CrispSDK.setDeviceToken(lastDeviceTokenData)
         }
         if let segment = crispConfig.sessionSegment {
             CrispSDK.session.segment = segment
@@ -344,6 +356,7 @@ public class FlutterCrispChatPlugin: NSObject, FlutterPlugin, UIApplicationDeleg
     public func application(_ application: UIApplication,
                             didRegisterForRemoteNotificationsWithDeviceToken deviceToken: Data) {
         NSLog("[CrispPlugin] Device token registered, length=\(deviceToken.count)")
+        UserDefaults.standard.set(deviceToken, forKey: Self.lastDeviceTokenDefaultsKey)
 
         if let lastWebsiteID = UserDefaults.standard.string(forKey: Self.lastWebsiteIDDefaultsKey),
            !lastWebsiteID.isEmpty {
