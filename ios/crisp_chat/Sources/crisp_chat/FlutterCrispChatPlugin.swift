@@ -271,6 +271,17 @@ public class FlutterCrispChatPlugin: NSObject, FlutterPlugin, UIApplicationDeleg
         CrispSDK.setShouldPromptForNotificationPermission(crispConfig.enableNotifications)
 
         if let tokenId = crispConfig.tokenId {
+            let previousTokenId = UserDefaults.standard.string(forKey: Self.lastTokenIDDefaultsKey)
+            if previousTokenId != tokenId {
+                // Switching identity (guest -> user, user -> guest, or user ->
+                // a different user) - clear the old token and reset the session
+                // first, same as resetCrispChatSession does on logout. Otherwise
+                // the remote session tied to the previous tokenId can stay bound
+                // to this device and keep delivering its push notifications even
+                // after we "switch" to the new one.
+                CrispSDK.setTokenID(tokenID: nil)
+                CrispSDK.session.reset()
+            }
             UserDefaults.standard.set(tokenId, forKey: Self.lastTokenIDDefaultsKey)
             CrispSDK.setTokenID(tokenID: tokenId)
         }
