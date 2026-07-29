@@ -190,6 +190,11 @@ public class FlutterCrispChatPlugin implements FlutterPlugin, MethodCallHandler,
                 result.notImplemented();
             }
         } else if (call.method.equals("resetCrispChatSession")) {
+            // Per Crisp's own docs: clear the token BEFORE resetting, or the
+            // reset only unbinds this app locally while the remote session
+            // (and its Session Continuity token) stays alive server-side -
+            // https://crisp-im.github.io/crisp-sdk-ios/documentation/crisp/crispsdk/settokenid(tokenid:)
+            Crisp.setTokenID(context, null);
             Crisp.resetChatSession(context);
             result.success(null);
         } else if (call.method.equals("setSessionString")) {

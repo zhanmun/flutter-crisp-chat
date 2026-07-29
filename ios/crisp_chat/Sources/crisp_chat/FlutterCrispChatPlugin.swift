@@ -121,6 +121,11 @@ public class FlutterCrispChatPlugin: NSObject, FlutterPlugin, UIApplicationDeleg
             result(nil)
 
         case "resetCrispChatSession":
+            // Per Crisp's own docs: clear the token BEFORE resetting, or the
+            // reset only unbinds this app locally while the remote session
+            // (and its Session Continuity token) stays alive server-side -
+            // https://crisp-im.github.io/crisp-sdk-ios/documentation/crisp/crispsdk/settokenid(tokenid:)
+            CrispSDK.setTokenID(tokenID: nil)
             CrispSDK.session.reset()
             result(nil)
 
