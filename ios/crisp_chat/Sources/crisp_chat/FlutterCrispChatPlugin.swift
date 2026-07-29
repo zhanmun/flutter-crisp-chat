@@ -127,6 +127,12 @@ public class FlutterCrispChatPlugin: NSObject, FlutterPlugin, UIApplicationDeleg
             // https://crisp-im.github.io/crisp-sdk-ios/documentation/crisp/crispsdk/settokenid(tokenid:)
             CrispSDK.setTokenID(tokenID: nil)
             CrispSDK.session.reset()
+
+            // Also drop the persisted tokenId - otherwise if the device token
+            // callback below fires again before the next applyCrispConfig()
+            // (e.g. after login), it would read this now-stale tokenId back
+            // out and silently re-apply it, reviving the just-reset session.
+            UserDefaults.standard.removeObject(forKey: Self.lastTokenIDDefaultsKey)
             result(nil)
 
         case "setSessionString":
