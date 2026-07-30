@@ -275,9 +275,19 @@ public class FlutterCrispChatPlugin: NSObject, FlutterPlugin, UIApplicationDeleg
         // below, which doesn't fire again just because the session reset.
         // Re-apply whatever token we already have on file so a session reset
         // doesn't leave the new session with no token bound to it at all.
+        //
+        // Crisp support confirmed (2026-07-30): session.reset() does not
+        // synchronously unregister the device's APNs token from the previous
+        // session server-side, so re-registering setDeviceToken() immediately
+        // afterward can still leave it tied to the old session. Their
+        // suggested workaround is to delay this re-registration instead of
+        // doing it in the same synchronous flow as the reset - not a
+        // complete fix on their end, but the best available for now.
         if let lastDeviceTokenData = UserDefaults.standard.data(forKey: Self.lastDeviceTokenDefaultsKey) {
-            NSLog("[CrispPlugin] Re-applying persisted device token after (re)configure, length=\(lastDeviceTokenData.count)")
-            CrispSDK.setDeviceToken(lastDeviceTokenData)
+            DispatchQueue.main.asyncAfter(deadline: .now() + 1.5) {
+                NSLog("[CrispPlugin] Re-applying persisted device token after (re)configure, length=\(lastDeviceTokenData.count)")
+                CrispSDK.setDeviceToken(lastDeviceTokenData)
+            }
         }
         if let segment = crispConfig.sessionSegment {
             CrispSDK.session.segment = segment
